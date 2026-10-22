@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adivinhe a Palavra</title>
+  <style>
+    /* Paleta de Cores SaaS (Do projeto anterior) */
+    :root {
+      --bg-body: #f4f6f8;
+      --bg-card: #ffffff;
+      --text-main: #374151;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      
+      --purple-main: #8b5cf6; 
+      --purple-dark: #6d28d9; 
+      --purple-light: #ede9fe;
+      
+      --green-mint: #34d399; 
+      --red-coral: #fb7185; 
+      
+      --gray-btn: #ffffff;
+      --gray-btn-border: #d1d5db;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, sans-serif; }
+    
+    body { background-color: var(--bg-body); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    
+    /* Cartões Base */
+    .card { background: var(--bg-card); border-radius: 12px; padding: 40px; width: 100%; max-width: 800px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border-color); text-align: center; }
+    
+    h1 { color: var(--purple-dark); font-size: 2.2rem; margin-bottom: 30px; }
+    .hidden { display: none !important; }
+    
+    /* Formulários e botões */
+    label { display: block; margin: 20px 0 8px; font-weight: 600; font-size: 1rem; color: var(--text-main); text-align: left; }
+    input, select { width: 100%; padding: 14px; border-radius: 6px; border: 1px solid var(--border-color); background: #fafafa; color: var(--text-main); font-size: 1rem; margin-bottom: 10px; transition: 0.2s; }
+    input:focus, select:focus { outline: none; border-color: var(--purple-main); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); background: #ffffff; }
+    
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 1.2rem; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.2s; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--purple-main); color: #fff; }
+    .btn-primary:hover { background: #7c3aed; }
+    
+    .btn-secondary { background: var(--gray-btn); color: var(--text-main); border: 1px solid var(--gray-btn-border); font-size: 1rem; margin-top: 20px; padding: 12px; }
+    .btn-secondary:hover { background: #f9fafb; }
+    
+    /* Área de Jogo */
+    .header-jogo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+    
+    .timer { font-size: 4rem; font-weight: 800; color: var(--purple-dark); line-height: 1; transition: color 0.3s; }
+    .timer.perigo { color: var(--red-coral); }
+    
+    .placar { background: var(--purple-light); border: 1px solid var(--purple-main); color: var(--purple-dark); padding: 10px 20px; border-radius: 25px; font-size: 1.2rem; font-weight: bold; }
+    
+    .palavra-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; min-height: 200px; display: flex; justify-content: center; align-items: center; margin-bottom: 30px; padding: 20px; }
+    .palavra { font-size: 4.5rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--text-main); word-break: break-word; }
+    
+    /* Controles de Ação */
+    .controles { display: flex; gap: 15px; }
+    .btn-pular { background: var(--gray-btn); color: var(--text-main); border: 1px solid var(--gray-btn-border); flex: 1; }
+    .btn-pular:hover { background: #f3f4f6; }
+    
+    .btn-acerto { background: var(--green-mint); color: white; flex: 2; font-size: 1.5rem; }
+    .btn-acerto:hover { background: #10b981; }
+  </style>
+</head>
+<body>
+
+  <!-- TELA 1: SETUP -->
+  <div id="tela-setup" class="card">
+    <h1>⏱️ Adivinhe a Palavra</h1>
+    
+    <label>Escolha o Tema:</label>
+    <select id="select-tema">
+      <option value="todas">Tudo Misturado</option>
+      <option value="animais">Animais</option>
+      <option value="acoes">Ações e Verbos</option>
+      <option value="geral">Objetos Gerais</option>
+    </select>
+
+    <label>Tempo da Rodada (segundos):</label>
+    <input type="number" id="tempo-rodada" value="60" min="10">
+
+    <button class="btn btn-primary" onclick="iniciarJogo()">▶ Começar Jogo</button>
+  </div>
+
+  <!-- TELA 2: JOGO -->
+  <div id="tela-jogo" class="card hidden">
+    
+    <div class="header-jogo">
+      <div class="timer" id="timer">60</div>
+      <div class="placar">Pontos: <span id="pontos">0</span></div>
+    </div>
+    
+    <div class="palavra-box">
+      <div class="palavra" id="palavra-display">PREPARADO?</div>
+    </div>
+
+    <!-- Botões Durante a Partida -->
+    <div class="controles" id="box-controles">
+      <button class="btn btn-pular" onclick="pularPalavra()">Pular</button>
+      <button class="btn btn-acerto" onclick="acertouPalavra()">✔ Acertou</button>
+    </div>
+    
+    <!-- Botão Fim de Rodada -->
+    <button class="btn btn-primary hidden" id="btn-nova-rodada" onclick="proximaRodada()">▶ Iniciar Próxima Rodada</button>
+    
+    <!-- Voltar ao Menu -->
+    <button class="btn btn-secondary" onclick="voltarMenu()">Voltar ao Menu Principal</button>
+  </div>
+
+  <script>
+    // Bancos de Palavras Iniciais (Você pode substituir por listas gigantes depois)
+    const bancoAnimais = [
+  "ABELHA", "AGUIA", "ALCE", "ANTA", "ARANHA", "ARARA", "ARRAIA", "AVESTRUZ", "BALEIA", "BARATA",
+  "BEIJAFLOR", "BESOURO", "BODE", "BORBOLETA", "CABRA", "CACHORRO", "CAMALEAO", "CAMARAO", "CAMELO", "CANARIO",
+  "CANGURU", "CAPIVARA", "CARACOL", "CARANGUEJO", "CASTOR", "CAVALO", "CEGONHA", "CHIMPANZE", "CIGARRA", "CISNE",
+  "COBRA", "COELHO", "CORUJA", "CROCODILO", "ELEFANTE", "ESCORPIAO", "ESQUILO", "FALCAO", "FLAMINGO", "FOCA",
+  "FORMIGA", "GAFANHOTO", "GAIVOTA", "GALINHA", "GALO", "GAMBA", "GANSO", "GATO", "GAVIAO", "GIRAFA",
+  "GOLFINHO", "GORILA", "GRILO", "GUAXINIM", "HAMSTER", "HIENA", "HIPOPOTAMO", "IGUANA", "JABUTI", "JACARE",
+  "JAVALI", "JOANINHA", "LAGARTIXA", "LAGARTO", "LEAO", "LEOPARDO", "LOBO", "LONTRA", "LULA", "MACACO",
+  "MARIPOSA", "MORCEGO", "MOSCA", "MOSQUITO", "ONCA", "ORCA", "OVELHA", "PANTERA", "PAPAGAIO", "PATO",
+  "PAVAO", "PEIXE", "PINGUIM", "POLVO", "POMBO", "PORCO", "PREGUICA", "RAPOSA", "RINOCERONTE", "SAPO",
+  "TARTARUGA", "TATU", "TIGRE", "TOURO", "TUCANO", "URSO", "VACA", "VAGALUME", "VEADO", "ZEBRA"
+];
+    const bancoAcoes = [
+  "ABAFAR", "ABAIXAR", "ABANDONAR", "ABENCOAR", "ABRACAR", "ABRIR", "ABSOLVER", "ABSORVER", "ABUSAR", "ACABAR",
+  "ACALMAR", "ACAMPAR", "ACEITAR", "ACENDER", "ACERTAR", "ACHAR", "ACOMODAR", "ACOMPANHAR", "ACONSELHAR", "ACORDAR",
+  "ACOSTUMAR", "ACREDITAR", "ACRESCENTAR", "ACUSAR", "ADAPTAR", "ADICIONAR", "ADIVINHAR", "ADMIRAR", "ADMITIR", "ADORAR",
+  "ADORMECER", "ADVERTIR", "AFASTAR", "AFIRMAR", "AFUNDAR", "AGIR", "AGITAR", "AGRADAR", "AGRADECER", "AGRUPAR",
+  "AGUARDAR", "AGUENTAR", "AJUDAR", "AJOELHAR", "ALERTAR", "ALIMENTAR", "ALIVIAR", "ALMOCAR", "ALTERAR", "ALUGAR",
+  "AMAR", "AMARRAR", "AMEACAR", "AMENIZAR", "AMASSAR", "AMEDRONTAR", "ANALISAR", "ANDAR", "ANIMAR", "ANOTAR",
+  "ANUNCIAR", "APAGAR", "APAIXONAR", "APANHAR", "APARECER", "APERTAR", "APLAUDIR", "APLICAR", "APOIAR", "APONTAR",
+  "APOSTAR", "APRENDER", "APRESENTAR", "APRESSAR", "APROVAR", "APROVEITAR", "AQUECER", "ARGUMENTAR", "ARRANCAR", "ARRANHAR",
+  "ARRANJAR", "ARRASTAR", "ARRUMAR", "ASSALTAR", "ASSAR", "ASSASSINAR", "ASSINAR", "ASSISTIR", "ASSOCIAR", "ASSOPRAR",
+  "ASSUSTAR", "ATACAR", "ATIRAR", "ATRASAR", "ATRAVESSAR", "ATUAR", "AUMENTAR", "AVANCAR", "AVISAR", "BABAR",
+  "BAGUNCAR", "BAILAR", "BAIXAR", "BALANCAR", "BANHAR", "BARBEAR", "BATER", "BATIZAR", "BEBER", "BEIJAR",
+  "BELISCAR", "BERRAR", "BOCEJAR", "BOIAR", "BORRAR", "BOTAR", "BRIGAR", "BRINCAR", "BRILHAR", "BROTAR",
+  "BUSCAR", "CABER", "CACAR", "CAIR", "CALCULAR", "CALAR", "CAMINHAR", "CANCELAR", "CANTAR", "CAPRICHAR",
+  "CAPTURAR", "CARREGAR", "CASAR", "CASTIGAR", "CATAR", "CAUSAR", "CAVALGAR", "CAVAR", "CEDER", "CELEBRAR",
+  "CENSURAR", "CERCAR", "CERRAR", "CHAMAR", "CHATEAR", "CHECAR", "CHEGAR", "CHEIRAR", "CHORAR", "CHOVER",
+  "CHUTAR", "CICATRIZAR", "CIRCULAR", "CITAR", "CLAMAR", "CLAREAR", "CLASSIFICAR", "CLICAR", "COBRIR", "COBRAR",
+  "COCAR", "COLAR", "COLABORAR", "COLECIONAR", "COLOCAR", "COMBINAR", "COMENTAR", "COMECAR", "COMER", "COMEMORAR",
+  "COMPARAR", "COMPARTILHAR", "COMPENSAR", "COMPETIR", "COMPLETAR", "COMPLICAR", "COMPOR", "COMPRAR", "COMPREENDER", "COMPROVAR",
+  "CONCENTRAR", "CONCEDER", "CONCLUIR", "CONCORDAR", "CONDENAR", "CONDUZIR", "CONECTAR", "CONFESSAR", "CONFIAR", "CONFIRMAR",
+  "CONFUNDIR", "CONGELAR", "CONHECER", "CONSERTAR", "CONSERVAR", "CONSIDERAR", "CONSOLAR", "CONSTRUIR", "CONSULTAR", "CONSUMIR",
+  "CONTAR", "CONTEMPLAR", "CONTER", "CONTINUAR", "CONTRATAR", "CONTROLAR", "CONVENCER", "CONVERSAR", "CONVIDAR", "COPIAR",
+  "CORAR", "CORTAR", "CORRER", "CORRIGIR", "COSTURAR", "COZINHAR", "CRAVAR", "CRESCER", "CRIAR", "CRITICAR",
+  "CRUZAR", "CUIDAR", "CULPAR", "CULTIVAR", "CURAR", "CURTIR", "CUSPIR", "CUSTAR", "DANCAR", "DAR",
+  "DEBATER", "DECIDIR", "DECLARAR", "DECOLAR", "DECORAR", "DEDICAR", "DEFENDER", "DEFINIR", "DEFORMAR", "DEITAR",
+  "DEIXAR", "DELETAR", "DELIRAR", "DEMANDAR", "DEMITIR", "DEMONSTRAR", "DEMORAR", "DEPENDER", "DEPOSITAR", "DERRAMAR",
+  "DERRETER", "DERRUBAR", "DESAFIAR", "DESAPARECER", "DESABAFAR", "DESARMAR", "DESCER", "DESCOBRIR", "DESCONFIAR", "DESCREVER",
+  "DESCULPAR", "DESEJAR", "DESENHAR", "DESENVOLVER", "DESFAZER", "DESFILAR", "DESFRUTAR", "DESGASTAR", "DESLIZAR", "DESLIGAR",
+  "DESMAIAR", "DESMONTAR", "DESPACHAR", "DESPEDIR", "DESPERTAR", "DESPREZAR", "DESTACAR", "DESTRANCAR", "DESTRUIR", "DESVIAR",
+  "DETALHAR", "DETECTAR", "DETERMINAR", "DETESTAR", "DEVORAR", "DEVOLVER", "DIALOGAR", "DITAR", "DIFAMAR", "DIFERENCIAR",
+  "DIFICULTAR", "DIGITAR", "DIMINUIR", "DIRECIONAR", "DIRIGIR", "DISCORDAR", "DISCUTIR", "DISFARCAR", "DISPARAR", "DISPOR",
+  "DISPUTAR", "DISSIPAR", "DISTINGUIR", "DISTRAIR", "DISTRIBUIR", "DIVERTIR", "DIVIDIR", "DIVAGAR", "DIVORCIAR", "DIVULGAR",
+  "DIZER", "DOBRAR", "DOER", "DOMAR", "DOMINAR", "DORMIR", "DRAGAR", "DRIBLAR", "DUVIDAR", "ECONOMIZAR",
+  "EDUCAR", "EJETAR", "ELEGER", "ELEVAR", "ELOGIAR", "EMBALAR", "EMBARCAR", "EMBURRAR", "EMPACOTAR", "EMPATAR",
+  "EMPURRAR", "EMPRESTAR", "ENCALHAR", "ENCARAR", "ENCHER", "ENCOLHER", "ENCONTRAR", "ENCOSTAR", "ENGOLIR", "ENGROSSAR",
+  "ENJOAR", "ENLOUQUECER", "ENROLAR", "ENSAIAR", "ENSINAR", "ENSOPAR", "ENTENDER", "ENTERRAR", "ENTORTAR", "ENTRAR",
+  "ENTREGAR", "ENTRISTECER", "ENUMERAR", "ENVELHECER", "ENVENENAR", "ENVIAR", "ENVOLVER", "ENXAGUAR", "ENXERGAR", "ENXUGAR",
+  "EQUILIBRAR", "ERRAR", "ESBANJAR", "ESBURACAR", "ESCALAR", "ESCAPAR", "ESCOLHER", "ESCONDER", "ESCORREGAR", "ESCREVER",
+  "ESCUTAR", "ESCORRER", "ESFREGAR", "ESFRIAR", "ESGOTAR", "ESMAGAR", "ESPALHAR", "ESPANCAR", "ESPANTAR", "ESPERAR",
+  "ESPIAR", "ESPIRRAR", "ESPREMER", "ESQUECER", "ESQUENTAR", "ESQUIAR", "ESTABELECER", "ESTACIONAR", "ESTALAR", "ESTRAGAR",
+  "ESTICAR", "ESTIMAR", "ESTIMULAR", "ESTOURAR", "ESTRANHAR", "ESTREAR", "ESTUDAR", "EVITAR", "EVOCAR", "EVOLUIR",
+  "EXAGERAR", "EXAMINAR", "EXCEDER", "EXECUTAR", "EXERCITAR", "EXIGIR", "EXISTIR", "EXPANDIR", "EXPULSAR", "EXPLORAR",
+  "EXPLODIR", "EXPORTAR", "EXPRESSAR", "EXTRAIR", "FABRICAR", "FALAR", "FALHAR", "FALTAR", "FANTASIAR", "FARTAR",
+  "FATIAR", "FATURAR", "FECHAR", "FERIR", "FERVER", "FESTEJAR", "FICAR", "FICHAR", "FOCAR", "FOFOCAR",
+  "FOLHEAR", "FORCAR", "FORMAR", "FORNECER", "FOTOGRAFAR", "FRAGMENTAR", "FREAR", "FREQUENTAR", "FRITAR", "FRUSTRAR",
+  "FUGIR", "FUMAR", "FUNDAR", "FURAR", "FURTAR", "FUXICAR", "GANHAR", "GARANTIR", "GASTAR", "GELAR",
+  "GEMER", "GERAR", "GERENCIAR", "GIRAR", "GOLPEAR", "GOSTAR", "GOZAR", "GRAVAR", "GRITAR", "GRUDAR",
+  "GUARDAR", "GUIAR", "HABITAR", "HABITUAR", "HESITAR", "HIDRATAR", "HIGIENIZAR", "HONRAR", "HOSPEDAR", "HUMILHAR",
+  "IDENTIFICAR", "IGNORAR", "ILUDIR", "ILUMINAR", "ILUSTRAR", "IMAGINAR", "IMITAR", "IMPACTAR", "IMPEDIR", "IMPLANTAR",
+  "IMPORTAR", "IMPRESSIONAR", "IMPRIMIR", "IMPROVISAR", "INAUGURAR", "INCENDIAR", "INCLUIR", "INCOMODAR", "INCORPORAR", "INDICAR",
+  "INDIGNAR", "INDUZIR", "INFECTAR", "INFLAMAR", "INFLUENCIAR", "INFORMAR", "INICIAR", "INJETAR", "INSERIR", "INSISTIR",
+  "INSPECIONAR", "INSPIRAR", "INSTALAR", "INSTRUIR", "INSULTAR", "INTEGRAR", "INTERAGIR", "INTERESSAR", "INTERFERIR", "INTERROGAR",
+  "INTERROMPER", "INTERVIR", "INTIMAR", "INTRODUZIR", "INUNDAR", "INVADIR", "INVENTAR", "INVERTER", "INVESTIGAR", "INVESTIR",
+  "IRRITAR", "ISOLAR", "JANTAR", "JOGAR", "JULGAR", "JUNTAR", "JURAR", "JUSTIFICAR", "LAMENTAR", "LAMBER",
+  "LANCAR", "LANCHAR", "LAPIDAR", "LARGAR", "LAVAR", "LEMBRAR", "LER", "LEVANTAR", "LEVAR", "LIDAR",
+  "LIGAR", "LIMITAR", "LIMPAR", "LISTAR", "LIVRAR", "LIXAR", "LOCAR", "LUTAR", "MACHUCAR", "MADRUGAR",
+  "MAGOAR", "MALHAR", "MALTRATAR", "MAMAR", "MANCAR", "MANCHAR", "MANDAR", "MANEJAR", "MANTER", "MAQUIAR",
+  "MARCAR", "MARCHAR", "MARTELAR", "MASTIGAR", "MATAR", "MATRICULAR", "MEDITAR", "MELHORAR", "MENCIONAR", "MENTIR",
+  "MERGULHAR", "MISTURAR", "MODELAR", "MODIFICAR", "MORDER", "MORRER", "MOSTRAR", "MOTIVAR", "MOVER", "MUDAR",
+  "MULTAR", "MULTIPLICAR", "NADAR", "NAMORAR", "NARRAR", "NASCER", "NAVEGAR", "NEGAR", "NEGOCIAR", "NEVAR",
+  "NOMEAR", "NOTAR", "NOTIFICAR", "OBEDECER", "OBRIGAR", "OBSERVAR", "OCULTAR", "ODIAR", "OFENDER", "OFERECER",
+  "OLHAR", "OMITIR", "OPERAR", "OPINAR", "OPOR", "ORGANIZAR", "ORIENTAR", "ORQUESTRAR", "OSCILAR", "OSTENTAR",
+  "OUSAR", "OUVIR", "OXIDAR", "PACIFICAR", "PAGAR", "PAIRAR", "PALPITAR", "PARALISAR", "PARAR", "PARECER",
+  "PARTICIPAR", "PARTIR", "PASSEAR", "PATINAR", "PAUSAR", "PECAR", "PEDALAR", "PEDIR", "PEGAR", "PEIDAR",
+  "PELEJAR", "PENALIZAR", "PENDURAR", "PENETRAR", "PENSAR", "PENTEAR", "PERCEBER", "PERDOAR", "PERGUNTAR", "PERIGAR",
+  "PERMITIR", "PERSEGUIR", "PERTENCER", "PERTURBAR", "PESAR", "PESCAR", "PESQUISAR", "PICAR", "PILOTAR", "PINTAR"
+];
+    const bancoGeral = [
+  "ABAJUR", "ABSORVENTE", "ACENDEDOR", "ACORDEAO", "ACUCAR", "ADUBO", "AGENDA", "AGULHA", "ALARME", "ALBUM",
+  "ALCA", "ALCOOL", "ALFACE", "ALFINETE", "ALGODAO", "ALICATE", "ALIANCA", "ALIMENTO", "ALMOFADA", "ALMOFARIZ",
+  "ALTAR", "ALTOFALANTE", "AMENDOIM", "AMPULHETA", "ANCORA", "ANDAIME", "ANEL", "ANTENA", "ANUARIO", "APAGADOR",
+  "APARELHO", "APARTAMENTO", "APITO", "APLICATIVO", "AQUECEDOR", "AQUARIO", "ARAME", "ARMARIO", "ARQUIVO", "ARROZ",
+  "ARVORE", "ASPIRADOR", "ASSENTO", "AVENTAL", "AVIAO", "AZEITE", "AZEITONA", "BACIA", "BACON", "BAGAGEM",
+  "BAINHA", "BALANCA", "BALCAO", "BALDE", "BALAO", "BALA", "BALINHA", "BALSA", "BAMBU", "BANANA",
+  "BANCO", "BANDEIRA", "BANDEJA", "BANHEIRA", "BANQUINHO", "BARBANTE", "BARCO", "BARRACA", "BARRIL", "BARRO",
+  "BASQUETE", "BASTAO", "BATATA", "BATEDEIRA", "BATERIA", "BATOM", "BAU", "BEBIDA", "BENGALA", "BERCO",
+  "BEXIGA", "BICO", "BICICLETA", "BIFE", "BIGORNA", "BILHETE", "BINOCULO", "BIQUINI", "BISCOITO", "BISTURI",
+  "BLUSA", "BOCA", "BOIA", "BOLA", "BOLACHA", "BOLO", "BOLSA", "BOLSO", "BOMBA", "BOMBEIRO",
+  "BOMBOM", "BONE", "BONECA", "BONECO", "BORRACHA", "BOTA", "BOTAO", "BRACELETE", "BRACO", "BRINCO",
+  "BRINQUEDO", "BROCA", "BUCHA", "BULE", "BUMERANGUE", "BUZINA", "CABANA", "CABECOTE", "CABELO", "CABIDE",
+  "CABO", "CADEADO", "CADEIRA", "CADERNO", "CAFE", "CAIXA", "CAIXAO", "CAIXOTE", "CAJU", "CALCA",
+  "CALCADO", "CALCINHA", "CALCULADORA", "CALENDARIO", "CALICE", "CAMA", "CAMARA", "CAMARAO", "CAMERA", "CAMINHAO",
+  "CAMISA", "CAMISETA", "CAMPAINHA", "CANUDO", "CANECA", "CANETA", "CANIVETE", "CANOA", "CANHAO", "CAPA",
+  "CAPACETE", "CARAMELO", "CARIMBO", "CARNE", "CARPETE", "CARRINHO", "CARRO", "CARROCA", "CARTA", "CARTAO",
+  "CARTAZ", "CARTEIRA", "CARVAO", "CASA", "CASACO", "CASCALHO", "CASTELO", "CATRACA", "CAVERNA", "CEBOLA",
+  "CELULAR", "CENOURA", "CEREAL", "CERCA", "CERVEJA", "CESTA", "CESTO", "CHALEIRA", "CHAO", "CHAPEU",
+  "CHARUTO", "CHAVE", "CHAVEIRO", "CHICLETE", "CHICOTE", "CHINELO", "CHOCOLATE", "CHUPETA", "CHURRASQUEIRA", "CHUVEIRO",
+  "CIGARRO", "CILINDRO", "CIMBALE", "CIMENTO", "CINTO", "CINZEIRO", "CLIPE", "COBERTOR", "COBRE", "COCO",
+  "COFRE", "COLA", "COLAR", "COLCHAO", "COLHER", "COLETE", "COLUNA", "COMPUTADOR", "CONCHA", "CONE",
+  "CONTROLE", "CONVITE", "COPO", "CORACAO", "CORDA", "CORDAO", "CORNETA", "COROA", "CORREIO", "CORRENTE",
+  "CORTADOR", "CORTINA", "COTONETE", "COUVE", "COZINHA", "CRACHA", "CRAVO", "CREME", "CRISTAL", "CRUCIFIXO",
+  "CRUZ", "CUBO", "CUECA", "CUPOM", "CURATIVO", "DADO", "DARDO", "DEDAL", "DENTE", "DESENTUPIDOR",
+  "DESENHO", "DESODORANTE", "DESPERTADOR", "DETERGENTE", "DIAMANTE", "DIARIO", "DINHEIRO", "DIPLOMA", "DISCO", "DISQUETE",
+  "DOCE", "DOCUMENTO", "DOMINO", "DRONE", "DUCHA", "EDIFICIO", "EDREDOM", "ELASTICO", "ELEVADOR", "EMBALAGEM",
+  "EMPADA", "ENCANAMENTO", "ENCICLOPEDIA", "ENFEITE", "ENGRENAGEM", "ENVELOPE", "ENXADA", "ENXOFRE", "ESCADA", "ESCALPELO",
+  "ESCAPAMENTO", "ESCOLA", "ESCOVA", "ESCRITORIO", "ESCUDO", "ESCULTURA", "ESMALTE", "ESPADA", "ESPANADOR", "ESPATULA",
+  "ESPELHO", "ESPINGARDA", "ESPONJA", "ESPREMEDOR", "ESQUELETO", "ESQUI", "ESTACA", "ESTACAO", "ESTADIO", "ESTANTE",
+  "ESTATUA", "ESTEIRA", "ESTILETE", "ESTILINGUE", "ESTOJO", "ESTRELA", "ETIQUETA", "EXTINTOR", "FACA", "FACAO",
+  "FAIXA", "FARINHA", "FAROFA", "FAROL", "FATIA", "FECHADURA", "FEIJAO", "FERRAMENTA", "FERRADURA", "FERRO",
+  "FICHA", "FIGO", "FILMADORA", "FILTRO", "FIO", "FITA", "FIVELA", "FLANELA", "FLECHA", "FLOR",
+  "FLORESTA", "FOCINHO", "FOGAO", "FOGO", "FOGUETE", "FOICE", "FOLHA", "FOLHETO", "FONTE", "FORCA",
+  "FORMA", "FORNO", "FOTO", "FOTOGRAFIA", "FRALDA", "FRASCO", "FRIGIDEIRA", "FRUTA", "FUNIL", "FURADEIRA",
+  "FUSIVEL", "FUTEBOL", "GABINETE", "GAIOLA", "GAITA", "GALHO", "GARAGEM", "GARFO", "GARGANTILHA", "GARRAFA",
+  "GAVETA", "GAVETEIRO", "GELO", "GEMA", "GESSO", "GIBI", "GIZ", "GLOBO", "GORRO", "GOTA",
+  "GRADE", "GRAMA", "GRAMPEADOR", "GRAMPO", "GRANADA", "GRAVATA", "GRELHA", "GRINALDA", "GUARDA", "GUIA",
+  "GUINCHO", "GUITARRA", "HASTE", "HELICE", "HELICOPTERO", "HIDRANTE", "HINO", "HISTORIA", "HORTELAN", "HOSPITAL",
+  "HOTEL", "IGREJA", "ILHA", "IMAGEM", "IMA", "IMPRESSORA", "INGRESSO", "INJECAO", "INSETO", "INSPETOR",
+  "INSTRUMENTO", "INVERNO", "IOGURTE", "ISCA", "ISQUEIRO", "JANELA", "JAQUETA", "JARRA", "JARRO", "JATO",
+  "JAZIGO", "JOELHEIRA", "JOGO", "JOIA", "JORNAL", "LABIRINTO", "LACO", "LACRE", "LADEIRA", "LAGO",
+  "LAMA", "LAMINA", "LAMPADA", "LAMPIAO", "LANCA", "LANCHA", "LANCHE", "LANCHEIRA", "LANTERNA", "LAPIS",
+  "LAPISEIRA", "LARANJA", "LATA", "LATAO", "LAVANDERIA", "LENCO", "LENCOL", "LENHA", "LENTE", "LENTILHA",
+  "LEQUE", "LETREIRO", "LIMONADA", "LIMAO", "LINGUICA", "LINHA", "LIQUIDIFICADOR", "LIVRO", "LIXEIRA", "LIXO",
+  "LOJA", "LONA", "LOUCA", "LUA", "LUMINARIA", "LUNETA", "LUPA", "LUSTRE", "LUVA", "MACA",
+  "MACARRAO", "MACACO", "MACHADO", "MADEIRA", "MAIONESE", "MALA", "MALETA", "MALHA", "MAMAO", "MAMADEIRA",
+  "MANDIOCA", "MANGA", "MANGUEIRA", "MANIVELA", "MANTA", "MANTEIGA", "MAPA", "MAQUINA", "MACANETA", "MARCA",
+  "MARCADOR", "MARGARINA", "MARMITA", "MARRETA", "MARTELO", "MASCARA", "MASSA", "MASTRO", "MATERIAL", "MECANISMO",
+  "MEDALHA", "MEIA", "MEL", "MELANCIA", "MELAO", "MENSAGEM", "MERCADO", "MESA", "METEORO", "METRO",
+  "MICROFONE", "MICROONDAS", "MILHO", "MOCHILA", "MOLA", "MOLDURA", "MOLETON", "MOLHO", "MOEDA", "MOINHO"
+];
+    
+    let bancoBase = [];
+    let bancoAtual = [];
+    let configTempo = 60;
+    let tempoRestante = 0;
+    let pontos = 0;
+    let intervalo = null;
+
+    // Embaralhamento Matemático Perfeito (Fisher-Yates)
+    function embaralhar(arr) {
+      let array = [...arr];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function iniciarJogo() {
+      const tema = document.getElementById('select-tema').value;
+      
+      // Carrega o banco selecionado
+      if (tema === "animais") bancoBase = bancoAnimais;
+      else if (tema === "acoes") bancoBase = bancoAcoes;
+      else if (tema === "geral") bancoBase = bancoGeral;
+      else bancoBase = [...bancoAnimais, ...bancoAcoes, ...bancoGeral]; // Junta todos se for "Tudo Misturado"
+
+      configTempo = parseInt(document.getElementById('tempo-rodada').value) || 60;
+      
+      document.getElementById('tela-setup').classList.add('hidden');
+      document.getElementById('tela-jogo').classList.remove('hidden');
+      
+      proximaRodada();
+    }
+
+    function proximaRodada() {
+      // Zera a pontuação e ajusta a interface
+      pontos = 0;
+      atualizarPlacar();
+      tempoRestante = configTempo;
+      
+      const timerElement = document.getElementById('timer');
+      timerElement.innerText = tempoRestante;
+      timerElement.classList.remove('perigo'); // Remove a cor vermelha se tiver
+      
+      document.getElementById('btn-nova-rodada').classList.add('hidden');
+      document.getElementById('box-controles').classList.remove('hidden');
+      
+      // Prepara e embaralha as palavras
+      bancoAtual = embaralhar(bancoBase);
+      exibirPalavra();
+
+      // Controle do Relógio
+      clearInterval(intervalo);
+      intervalo = setInterval(() => {
+        tempoRestante--;
+        timerElement.innerText = tempoRestante;
+        
+        // Fica vermelho nos últimos 10 segundos
+        if (tempoRestante <= 10) {
+          timerElement.classList.add('perigo'); 
+        }
+
+        if (tempoRestante <= 0) {
+          finalizarRodada();
+        }
+      }, 1000);
+    }
+
+    function exibirPalavra() {
+      // Se as palavras embaralhadas acabarem, a gente pega a base original e embaralha de novo!
+      if (bancoAtual.length === 0) {
+        bancoAtual = embaralhar(bancoBase); 
+      }
+      document.getElementById('palavra-display').innerText = bancoAtual.pop();
+    }
+
+    function acertouPalavra() {
+      pontos++;
+      atualizarPlacar();
+      exibirPalavra();
+    }
+
+    function pularPalavra() {
+      // Joga a palavra pulada para o final do array caso precise reciclar depois, e exibe uma nova
+      const palavraPulada = document.getElementById('palavra-display').innerText;
+      bancoAtual.unshift(palavraPulada); 
+      exibirPalavra();
+    }
+
+    function atualizarPlacar() {
+      document.getElementById('pontos').innerText = pontos;
+    }
+
+    function finalizarRodada() {
+      clearInterval(intervalo);
+      document.getElementById('palavra-display').innerText = "FIM DO TEMPO!";
+      document.getElementById('box-controles').classList.add('hidden');
+      document.getElementById('btn-nova-rodada').classList.remove('hidden');
+    }
+
+    function voltarMenu() {
+      clearInterval(intervalo);
+      document.getElementById('tela-jogo').classList.add('hidden');
+      document.getElementById('tela-setup').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
